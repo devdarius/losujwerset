@@ -495,7 +495,7 @@ export default function Home() {
         <header>
           <div className="logo" onClick={() => drawRandomQuote(activeCategory, true)}>
             <h1>Losuj<span>Werset</span></h1>
-            <p>Przypadkowe Wersety Biblijne</p>
+            <p>Wersety z Pisma Świętego</p>
           </div>
           
           <div className="controls">
