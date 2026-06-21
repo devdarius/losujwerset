@@ -16,13 +16,22 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://losujwerset.pl"),
   title: "LosujWerset.pl | Losuj werset z Pisma Świętego",
-  description: "Losuj werset z Pisma Świętego w dowolnej kategorii. Wylosuj fragment Słowa Bożego na dziś i pobieraj estetyczne grafiki do udostępnienia.",
-  keywords: ["Biblia", "Pismo Święte", "werset", "cytat dnia", "losowanie Biblii", "Nowa Biblia Gdańska", "Słowo Boże", "losuj werset", "wylosuj cytat", "losujwerset.pl"],
+  description: "Znajdź pocieszenie, siłę w trudnych chwilach, pokój w lęku, mądrość, miłość i nadzieję. Wylosuj fragment Słowa Bożego dopasowany do Twoich potrzeb i pobierz grafikę z cytatem.",
+  keywords: [
+    "Biblia", "Pismo Święte", "werset na dziś", "cytaty o nadziei", "wersety na pocieszenie",
+    "siła w trudnych chwilach", "spokój w lęku cytaty", "mądrość życiowa biblia", "cytaty o miłości boga",
+    "wsparcie duchowe cytaty", "motywacja z biblii", "wdzięczność wersety", "losowanie Biblii",
+    "Słowo Boże na dziś", "losuj werset", "wylosuj cytat", "losujwerset.pl"
+  ],
   authors: [{ name: "LosujWerset.pl" }],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "LosujWerset.pl | Losuj werset z Pisma Świętego",
-    description: "Wylosuj fragment Słowa Bożego na dziś. Pobieraj estetyczne grafiki z wersetami.",
+    description: "Wylosuj fragment Słowa Bożego dopasowany do Twoich potrzeb. Pobierz estetyczną grafikę z cytatem.",
     type: "website",
     locale: "pl_PL",
   }
