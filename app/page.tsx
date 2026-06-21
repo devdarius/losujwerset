@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import Link from "next/link";
 import { Quote, quotes } from "./data/quotes";
 
 // Sound synthesizer using Web Audio API
@@ -61,6 +62,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [canvasTheme, setCanvasTheme] = useState<string>("gradient-gold");
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [showCookiesBanner, setShowCookiesBanner] = useState<boolean>(false);
   
   // Toast notifications state
   const [toastText, setToastText] = useState<string>("");
@@ -88,16 +90,34 @@ export default function Home() {
 
   // Initial draw & reading query string
   useEffect(() => {
-    // Check local storage preferences
+    // Check local storage preferences or auto-detect by local time
     const storedTheme = localStorage.getItem("theme");
-    if (storedTheme === "light") {
+    let initialTheme = "dark";
+    if (storedTheme) {
+      initialTheme = storedTheme;
+    } else {
+      const hour = new Date().getHours();
+      if (hour >= 6 && hour < 19) {
+        initialTheme = "light";
+      }
+    }
+
+    if (initialTheme === "light") {
       setIsLightMode(true);
       document.documentElement.classList.add("light-mode");
+    } else {
+      setIsLightMode(false);
+      document.documentElement.classList.remove("light-mode");
     }
     
     const storedSound = localStorage.getItem("sound");
     if (storedSound === "false") {
       setIsSoundEnabled(false);
+    }
+
+    const cookiesAccepted = localStorage.getItem("cookies-accepted");
+    if (cookiesAccepted !== "true") {
+      setTimeout(() => setShowCookiesBanner(true), 800);
     }
 
     // Router matching via query parameter
@@ -384,6 +404,11 @@ export default function Home() {
     triggerToast("ZAPISANO GRAFIKĘ!");
   };
 
+  const acceptCookies = () => {
+    localStorage.setItem("cookies-accepted", "true");
+    setShowCookiesBanner(false);
+  };
+
   // Background particle system effect
   useEffect(() => {
     const canvas = particleCanvasRef.current;
@@ -626,6 +651,11 @@ export default function Home() {
         <footer>
           <div>
             Wszystkie wersety z Pisma Świętego losowane są z równym prawdopodobieństwem.
+            <div style={{ display: "flex", gap: "0.8rem", marginTop: "0.5rem", flexWrap: "wrap", justifyContent: "center", opacity: 0.8 }}>
+              <Link href="/polityka-prywatnosci" style={{ textDecoration: "underline" }}>Polityka Prywatności</Link>
+              <span>•</span>
+              <Link href="/regulamin" style={{ textDecoration: "underline" }}>Regulamin</Link>
+            </div>
           </div>
           <div>
             © {new Date().getFullYear()} LosujWerset.pl.
@@ -684,6 +714,17 @@ export default function Home() {
             Pobierz jako PNG
           </button>
         </div>
+      </div>
+
+      {/* Cookies / Preferences Banner */}
+      <div className={`cookies-banner ${showCookiesBanner ? "show" : ""}`}>
+        <p className="cookies-text">
+          Używamy informacji zapisanych w pamięci lokalnej (Local Storage) do zapamiętania Twojego motywu oraz ustawień dźwięku. Szczegóły znajdziesz w naszej{" "}
+          <Link href="/polityka-prywatnosci">Polityce Prywatności</Link>.
+        </p>
+        <button className="cookies-btn" onClick={acceptCookies}>
+          Rozumiem
+        </button>
       </div>
     </>
   );
