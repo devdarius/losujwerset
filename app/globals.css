@@ -274,9 +274,14 @@ main {
   font-size: 8rem;
   font-weight: 900;
   color: var(--gold-accent);
-  opacity: 0.06;
+  opacity: 0.18;
   pointer-events: none;
   line-height: 1;
+}
+
+html.light-mode .quote-decor {
+  opacity: 0.22;
+  color: #a37f1c;
 }
 
 .quote-decor-left {
