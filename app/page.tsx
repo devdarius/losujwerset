@@ -625,7 +625,7 @@ export default function Home() {
         {/* Footer Section */}
         <footer>
           <div>
-            Inspirowane serwisem <a href="https://otwórz.pl" target="_blank" rel="noopener noreferrer">otwórz.pl</a>. Wszystkie wersety losowane są z równym prawdopodobieństwem.
+            Wszystkie wersety z Pisma Świętego losowane są z równym prawdopodobieństwem.
           </div>
           <div>
             © {new Date().getFullYear()} LosujWerset.pl.
