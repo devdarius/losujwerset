@@ -71,6 +71,7 @@ export default function Home() {
   const [canvasTheme, setCanvasTheme] = useState<string>("gradient-gold");
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [showCookiesBanner, setShowCookiesBanner] = useState<boolean>(false);
+  const [showSeoDrawer, setShowSeoDrawer] = useState<boolean>(false);
   
   // Toast notifications state
   const [toastText, setToastText] = useState<string>("");
@@ -95,6 +96,12 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, [isToastVisible]);
+
+  // Lock body scroll to 100vh on mount
+  useEffect(() => {
+    document.body.classList.add("scroll-locked");
+    return () => document.body.classList.remove("scroll-locked");
+  }, []);
 
   // Initial draw & reading query string
   useEffect(() => {
@@ -565,7 +572,7 @@ export default function Home() {
       <canvas id="particle-canvas" ref={particleCanvasRef} />
       
       {/* App Container */}
-      <div className="app-container">
+      <div className="app-container fixed-height">
         
         {/* Header Section */}
         <header>
@@ -698,28 +705,20 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer SEO Links */}
-        <section className="footer-seo-links">
-          <h4 className="seo-links-title">Szukaj wersetów według potrzeb i tematów</h4>
-          <div className="seo-links-list">
-            <Link href="/temat/pokoj" className="seo-link">Pokój i wyciszenie</Link>
-            <Link href="/temat/milosc" className="seo-link">Miłość i dobroć</Link>
-            <Link href="/temat/nadzieja" className="seo-link">Nadzieja i pocieszenie</Link>
-            <Link href="/temat/sila" className="seo-link">Siła i męstwo</Link>
-            <Link href="/temat/wiara" className="seo-link">Wiara i zaufanie</Link>
-            <Link href="/temat/wdziecznosc" className="seo-link">Wdzięczność i dziękczynienie</Link>
-            <Link href="/temat/madrosc" className="seo-link">Mądrość Boża</Link>
-          </div>
-        </section>
-        
         {/* Footer Section */}
         <footer>
           <div>
-            Wszystkie wersety z Pisma Świętego losowane są z równym prawdopodobieństwem.
-            <div style={{ display: "flex", gap: "0.8rem", marginTop: "0.5rem", flexWrap: "wrap", justifyContent: "center", opacity: 0.8 }}>
-              <Link href="/polityka-prywatnosci" style={{ textDecoration: "underline" }}>Polityka Prywatności</Link>
-              <span>•</span>
-              <Link href="/regulamin" style={{ textDecoration: "underline" }}>Regulamin</Link>
+            <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
+              <button
+                onClick={() => setShowSeoDrawer(true)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--gold-accent)", fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: 0, fontFamily: "var(--font-sans)" }}
+              >
+                ✦ Przeglądaj tematy
+              </button>
+              <span style={{ opacity: 0.4 }}>|</span>
+              <Link href="/polityka-prywatnosci" style={{ textDecoration: "underline", opacity: 0.7, fontSize: "0.8rem" }}>Prywatność</Link>
+              <span style={{ opacity: 0.4 }}>•</span>
+              <Link href="/regulamin" style={{ textDecoration: "underline", opacity: 0.7, fontSize: "0.8rem" }}>Regulamin</Link>
             </div>
           </div>
           <div>
@@ -790,6 +789,56 @@ export default function Home() {
         <button className="cookies-btn" onClick={acceptCookies}>
           Rozumiem
         </button>
+      </div>
+
+      {/* SEO Themes Bottom Drawer */}
+      <div className={`drawer-overlay ${showSeoDrawer ? "open" : ""}`} onClick={() => setShowSeoDrawer(false)}>
+        <div className="drawer-container" onClick={(e) => e.stopPropagation()}>
+          <div className="drawer-handle" onClick={() => setShowSeoDrawer(false)} />
+          <button className="drawer-close" onClick={() => setShowSeoDrawer(false)} title="Zamknij">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div className="drawer-content">
+            <h3 style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.6rem", color: "var(--gold-accent)", marginBottom: "0.4rem" }}>Przeglądaj Tematy</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "1.75rem" }}>Znajdź werset dopasowany do Twojej potrzeby</p>
+            <div className="drawer-links-list" style={{ gridTemplateColumns: "1fr 1fr", display: "grid", gap: "1rem", textAlign: "left" }}>
+              {([
+                { href: "/temat/pokoj", emoji: "🕊️", label: "Pokój", sub: "i wyciszenie" },
+                { href: "/temat/milosc", emoji: "❤️", label: "Miłość", sub: "i dobroć" },
+                { href: "/temat/nadzieja", emoji: "🌅", label: "Nadzieja", sub: "i pocieszenie" },
+                { href: "/temat/sila", emoji: "⚡", label: "Siła", sub: "i męstwo" },
+                { href: "/temat/wiara", emoji: "✝️", label: "Wiara", sub: "i zaufanie" },
+                { href: "/temat/wdziecznosc", emoji: "🙏", label: "Wdzięczność", sub: "i dziękczynienie" },
+                { href: "/temat/madrosc", emoji: "📖", label: "Mądrość", sub: "Boża" },
+              ] as const).map(({ href, emoji, label, sub }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    background: "var(--card-bg)",
+                    border: "1px solid var(--card-border)",
+                    borderRadius: "16px",
+                    padding: "0.9rem 1rem",
+                    transition: "all 0.25s",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span style={{ fontSize: "1.4rem" }}>{emoji}</span>
+                  <span>
+                    <span style={{ display: "block", fontWeight: 700, fontSize: "0.9rem", color: "var(--text-main)" }}>{label}</span>
+                    <span style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)" }}>{sub}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
