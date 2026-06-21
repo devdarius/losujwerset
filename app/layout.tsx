@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -34,7 +35,23 @@ export default function RootLayout({
   }>) {
   return (
     <html lang="pl" className={`${playfair.variable} ${plusJakarta.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Google tag (gtag.js) */}
+        <Script 
+          src="https://www.googletagmanager.com/gtag/js?id=G-PN8VB1QWM2" 
+          strategy="afterInteractive" 
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-PN8VB1QWM2');
+          `}
+        </Script>
+      </body>
     </html>
   );
 }

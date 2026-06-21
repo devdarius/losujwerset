@@ -4,6 +4,13 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { Quote, quotes } from "./data/quotes";
 
+declare global {
+  interface Window {
+    dataLayer: any[];
+    gtag?: (...args: any[]) => void;
+  }
+}
+
 // Sound synthesizer using Web Audio API
 const playChimeSound = () => {
   if (typeof window === "undefined") return;
@@ -165,6 +172,15 @@ export default function Home() {
       setCurrentQuote(chosen);
       updateUrlQuery(chosen.id);
       
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "draw_quote", {
+          quote_id: chosen.id,
+          quote_ref: chosen.reference,
+          category: chosen.category,
+          is_manual: animate,
+        });
+      }
+
       if (isSoundEnabled && animate) {
         playChimeSound();
       }
@@ -209,7 +225,15 @@ export default function Home() {
     if (!currentQuote) return;
     const shareText = `„${currentQuote.text}” – ${currentQuote.reference} (Otwórz Słowo)`;
     navigator.clipboard.writeText(shareText)
-      .then(() => triggerToast("SKOPIOWANO Werset!"))
+      .then(() => {
+        triggerToast("SKOPIOWANO Werset!");
+        if (typeof window !== "undefined" && window.gtag) {
+          window.gtag("event", "copy_quote_text", {
+            quote_id: currentQuote.id,
+            quote_ref: currentQuote.reference,
+          });
+        }
+      })
       .catch(() => triggerToast("BŁĄD KOPIOWANIA"));
   };
 
@@ -218,7 +242,15 @@ export default function Home() {
     if (!currentQuote) return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentQuote.id}`;
     navigator.clipboard.writeText(shareUrl)
-      .then(() => triggerToast("LINK SKOPIOWANY!"))
+      .then(() => {
+        triggerToast("LINK SKOPIOWANY!");
+        if (typeof window !== "undefined" && window.gtag) {
+          window.gtag("event", "copy_quote_link", {
+            quote_id: currentQuote.id,
+            quote_ref: currentQuote.reference,
+          });
+        }
+      })
       .catch(() => triggerToast("BŁĄD KOPIOWANIA"));
   };
 
@@ -226,6 +258,11 @@ export default function Home() {
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
     drawRandomQuote(category, true);
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "change_category", {
+        category: category,
+      });
+    }
   };
 
   // Canvas Drawing & Image Generation
@@ -402,6 +439,14 @@ export default function Home() {
     link.href = canvas.toDataURL("image/png");
     link.click();
     triggerToast("ZAPISANO GRAFIKĘ!");
+
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "download_quote_graphic", {
+        quote_id: currentQuote.id,
+        quote_ref: currentQuote.reference,
+        canvas_theme: canvasTheme,
+      });
+    }
   };
 
   const acceptCookies = () => {

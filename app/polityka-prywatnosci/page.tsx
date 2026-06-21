@@ -94,8 +94,9 @@ export default function PrivacyPolicy() {
               <li>Zaakceptowania komunikatu o ciasteczkach (aby baner nie wyświetlał się przy kolejnej wizycie).</li>
             </ul>
 
-            <h2>3. Narzędzia Analityczne i Zewnętrzne</h2>
-            <p>Serwis jest w pełni niezależny. Nie korzystamy z zewnętrznych skryptów śledzących ani systemów analitycznych zbierających dane o zachowaniu użytkowników.</p>
+            <h2>3. Narzędzia Analityczne i Statystyczne</h2>
+            <p>W celu optymalizacji działania serwisu oraz analizy statystyk ruchu korzystamy z narzędzia <strong>Google Analytics</strong> dostarczanego przez Google Ireland Limited. Narzędzie to wykorzystuje pliki cookies do zbierania anonimowych informacji (takich jak liczba odwiedzin, czas spędzony na stronie, najczęściej klikane przyciski czy pobieranie grafik).</p>
+            <p>Wszystkie adresy IP użytkowników są <strong>anonimizowane</strong> przez Google przed ich przetworzeniem. Użytkownik może w każdej chwili zablokować pliki cookies w ustawieniach swojej przeglądarki lub nie wyrazić zgody na ich zapisywanie w naszym banerze cookies.</p>
 
             <h2>4. Odnośniki do Zewnętrznych Stron</h2>
             <p>Nasza strona zawiera linki prowadzące do zewnętrznego portalu <strong>bible.com</strong> (w celu przeczytania pełnego kontekstu wersetów). Nie ponosimy odpowiedzialności za polityki prywatności oraz zasady korzystania z ciasteczek obowiązujące na zewnętrznych witrynach.</p>
