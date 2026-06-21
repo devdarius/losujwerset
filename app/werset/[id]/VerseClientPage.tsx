@@ -2,21 +2,17 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { Quote, quotes } from "./data/quotes";
+import { Quote, quotes } from "../../data/quotes";
 
-declare global {
-  interface Window {
-    dataLayer: any[];
-    gtag?: (...args: any[]) => void;
-  }
+interface VerseClientPageProps {
+  initialQuote: Quote;
+  relatedQuotes: Quote[];
 }
 
-// Sound synthesizer using Web Audio API
 const playChimeSound = () => {
   if (typeof window === "undefined") return;
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
     const filter = audioCtx.createBiquadFilter();
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
@@ -26,7 +22,6 @@ const playChimeSound = () => {
     gainNode.gain.exponentialRampToValueAtTime(0.1, audioCtx.currentTime + 0.04);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.0);
     
-    // A5 (880 Hz) and E6 (1318.51 Hz) - pure perfect fifth for a peaceful, celestial vibe
     const osc1 = audioCtx.createOscillator();
     osc1.type = "sine";
     osc1.frequency.setValueAtTime(880, audioCtx.currentTime);
@@ -61,10 +56,8 @@ const categoryTranslations: Record<string, string> = {
   madrosc: "Mądrość"
 };
 
-export default function Home() {
-  // Application State
-  const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>("wszystkie");
+export default function VerseClientPage({ initialQuote, relatedQuotes }: VerseClientPageProps) {
+  const [currentQuote, setCurrentQuote] = useState<Quote>(initialQuote);
   const [isLightMode, setIsLightMode] = useState<boolean>(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -72,18 +65,13 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
   const [showCookiesBanner, setShowCookiesBanner] = useState<boolean>(false);
   
-  // Toast notifications state
   const [toastText, setToastText] = useState<string>("");
   const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   
-  // Canvas sharing refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewImgRef = useRef<HTMLImageElement | null>(null);
-  
-  // Background particles canvas ref
   const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Trigger toast alert
   const triggerToast = useCallback((text: string) => {
     setToastText(text);
     setIsToastVisible(true);
@@ -96,9 +84,10 @@ export default function Home() {
     }
   }, [isToastVisible]);
 
-  // Initial draw & reading query string
+  // Read preferences and load theme
   useEffect(() => {
-    // Check local storage preferences or auto-detect by local time
+    setCurrentQuote(initialQuote);
+    
     const storedTheme = localStorage.getItem("theme");
     let initialTheme = "dark";
     if (storedTheme) {
@@ -127,63 +116,33 @@ export default function Home() {
     if (cookiesAccepted !== "true") {
       setTimeout(() => setShowCookiesBanner(true), 800);
     }
+  }, [initialQuote]);
 
-    // Router matching via query parameter
-    const params = new URLSearchParams(window.location.search);
-    const paramId = params.get("id");
-    const paramCat = params.get("cat");
-    
-    if (paramId) {
-      const idNum = parseInt(paramId, 10);
-      const found = quotes.find(q => q.id === idNum);
-      if (found) {
-        setCurrentQuote(found);
-        setActiveCategory(found.category);
-        return;
-      }
-    } else if (paramCat && ["pokoj", "milosc", "nadzieja", "sila", "wiara", "wdziecznosc", "madrosc"].includes(paramCat)) {
-      setActiveCategory(paramCat);
-      drawRandomQuote(paramCat, false);
-      return;
-    }
-    
-    // Default: draw a random quote
-    drawRandomQuote("wszystkie", false);
-  }, [triggerToast]);
-
-  // Handle URL updating without page reload
-  const updateUrlQuery = (id: number) => {
-    if (typeof window !== "undefined") {
-      const newUrl = `${window.location.pathname}?id=${id}`;
-      window.history.pushState({ path: newUrl }, "", newUrl);
-    }
-  };
-
-  // Draw random quote
-  const drawRandomQuote = (category: string = "wszystkie", animate: boolean = true) => {
-    const filtered = category === "wszystkie" 
-      ? quotes 
-      : quotes.filter(q => q.category === category);
-      
+  // Draw another quote from the same category
+  const drawRandomQuote = (animate: boolean = true) => {
+    const filtered = quotes.filter(q => q.category === initialQuote.category);
     if (filtered.length === 0) return;
 
     const selectNew = () => {
-      // Avoid drawing the same quote twice if there are multiple options
       let chosen = filtered[Math.floor(Math.random() * filtered.length)];
-      if (filtered.length > 1 && currentQuote && chosen.id === currentQuote.id) {
+      if (filtered.length > 1 && chosen.id === currentQuote.id) {
         const remaining = filtered.filter(q => q.id !== currentQuote.id);
         chosen = remaining[Math.floor(Math.random() * remaining.length)];
       }
       
       setCurrentQuote(chosen);
-      updateUrlQuery(chosen.id);
+      
+      // Update browser URL silently
+      if (typeof window !== "undefined") {
+        const newUrl = `${window.location.origin}/werset/${chosen.id}`;
+        window.history.pushState({ path: newUrl }, "", newUrl);
+      }
       
       if (typeof window !== "undefined" && window.gtag) {
-        window.gtag("event", "draw_quote", {
+        window.gtag("event", "draw_quote_verse_page", {
           quote_id: chosen.id,
           quote_ref: chosen.reference,
           category: chosen.category,
-          is_manual: animate,
         });
       }
 
@@ -197,13 +156,12 @@ export default function Home() {
       setTimeout(() => {
         selectNew();
         setIsTransitioning(false);
-      }, 400); // matching CSS transitions
+      }, 400);
     } else {
       selectNew();
     }
   };
 
-  // Sound switch toggle
   const toggleSound = () => {
     const nextState = !isSoundEnabled;
     setIsSoundEnabled(nextState);
@@ -211,7 +169,6 @@ export default function Home() {
     triggerToast(nextState ? "DŹWIĘK WŁĄCZONY" : "DŹWIĘK WYCISZONY");
   };
 
-  // Light/Dark Theme Switch
   const toggleTheme = () => {
     const nextState = !isLightMode;
     setIsLightMode(nextState);
@@ -226,13 +183,11 @@ export default function Home() {
     }
   };
 
-  // Copy to clipboard helper
   const copyToClipboard = () => {
-    if (!currentQuote) return;
-    const shareText = `„${currentQuote.text}” – ${currentQuote.reference} (Otwórz Słowo)`;
+    const shareText = `„${currentQuote.text}” – ${currentQuote.reference} (LosujWerset.pl)`;
     navigator.clipboard.writeText(shareText)
       .then(() => {
-        triggerToast("SKOPIOWANO Werset!");
+        triggerToast("SKOPIOWANO WERSET!");
         if (typeof window !== "undefined" && window.gtag) {
           window.gtag("event", "copy_quote_text", {
             quote_id: currentQuote.id,
@@ -243,10 +198,8 @@ export default function Home() {
       .catch(() => triggerToast("BŁĄD KOPIOWANIA"));
   };
 
-  // Copy URL to clipboard
   const copyLink = () => {
-    if (!currentQuote) return;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?id=${currentQuote.id}`;
+    const shareUrl = `${window.location.origin}/werset/${currentQuote.id}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
         triggerToast("LINK SKOPIOWANY!");
@@ -260,34 +213,20 @@ export default function Home() {
       .catch(() => triggerToast("BŁĄD KOPIOWANIA"));
   };
 
-  // Category change wrapper
-  const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
-    drawRandomQuote(category, true);
-    if (typeof window !== "undefined" && window.gtag) {
-      window.gtag("event", "change_category", {
-        category: category,
-      });
-    }
-  };
-
-  // Canvas Drawing & Image Generation
+  // Canvas draw logic
   const generateShareImage = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !currentQuote) return;
+    if (!canvas) return;
     
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
-    // Set fixed square size for high quality Instagram post (1080x1080)
     const size = 1080;
     canvas.width = size;
     canvas.height = size;
     
-    // Clear canvas completely to prevent ghosting artifacts
     ctx.clearRect(0, 0, size, size);
     
-    // 1. Draw Background
     if (canvasTheme === "gradient-gold") {
       const gradient = ctx.createRadialGradient(size/2, size/2, 50, size/2, size/2, size * 0.75);
       gradient.addColorStop(0, "#161b2b");
@@ -295,7 +234,6 @@ export default function Home() {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, size, size);
       
-      // Radiant subtle golden halo
       const glowGrad = ctx.createRadialGradient(size/2, size/3, 10, size/2, size/3, 400);
       glowGrad.addColorStop(0, "rgba(212, 175, 55, 0.08)");
       glowGrad.addColorStop(1, "rgba(212, 175, 55, 0)");
@@ -321,7 +259,6 @@ export default function Home() {
       ctx.fillRect(0, 0, size, size);
     }
     
-    // 2. Draw Frames (Złote lub ciemnobrązowe ramki)
     const frameInset = 50;
     ctx.lineWidth = 1;
     ctx.strokeStyle = canvasTheme === "gradient-sand" ? "rgba(163, 127, 28, 0.35)" : "rgba(212, 175, 55, 0.3)";
@@ -331,24 +268,20 @@ export default function Home() {
     ctx.strokeStyle = canvasTheme === "gradient-sand" ? "rgba(163, 127, 28, 0.7)" : "rgba(212, 175, 55, 0.6)";
     ctx.strokeRect(frameInset + 10, frameInset + 10, size - (frameInset + 10) * 2, size - (frameInset + 10) * 2);
 
-    // 3. Draw Decorative Cross at the top
     ctx.strokeStyle = canvasTheme === "gradient-sand" ? "#a37f1c" : "#d4af37";
     ctx.lineWidth = 3;
     const center = size / 2;
     const symbolY = 160;
     ctx.beginPath();
-    ctx.moveTo(center, symbolY - 20); // vertical line
+    ctx.moveTo(center, symbolY - 20);
     ctx.lineTo(center, symbolY + 20);
-    ctx.moveTo(center - 15, symbolY - 5); // horizontal line
+    ctx.moveTo(center - 15, symbolY - 5);
     ctx.lineTo(center + 15, symbolY - 5);
     ctx.stroke();
     
-    // 4. Wrap & Draw Quote Text (Wyśrodkowanie w strefie cytatu)
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = canvasTheme === "gradient-sand" ? "#1f2937" : "#f3f4f6";
-    
-    // Używamy bezpiecznych fontów systemowych na wypadek gdyby Google Fonts się ładowały
     ctx.font = "italic 42px 'Playfair Display', Georgia, serif";
     
     const maxTextWidth = size - 220;
@@ -375,7 +308,6 @@ export default function Home() {
     
     const lines = wrapText(`„${currentQuote.text}”`, maxTextWidth);
     
-    // Precyzyjne pionowe wyśrodkowanie tekstu w środkowej sekcji (centerY = 490)
     const centerY = 490;
     const totalHeight = lines.length * lineHeight;
     const startY = centerY - (totalHeight / 2) + (lineHeight / 2);
@@ -384,30 +316,25 @@ export default function Home() {
       ctx.fillText(line, center, startY + index * lineHeight);
     });
     
-    // 5. Draw Reference (Księga i werset) - Stała pozycja Y = 810 dla idealnego podziału
     ctx.font = "bold 23px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.fillStyle = canvasTheme === "gradient-sand" ? "#a37f1c" : "#d4af37";
     
     const referenceY = 810;
     ctx.fillText(currentQuote.reference.toUpperCase(), center, referenceY);
     
-    // 6. Draw Translation - Stała pozycja Y = 850
     ctx.font = "500 15px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.fillStyle = canvasTheme === "gradient-sand" ? "#4b5563" : "#9ca3af";
     ctx.fillText("NOWA BIBLIA GDAŃSKA (NBG)", center, referenceY + 40);
     
-    // 7. Footer branding - Stała pozycja Y = 950
     ctx.font = "bold 18px 'Plus Jakarta Sans', Arial, sans-serif";
     ctx.fillStyle = canvasTheme === "gradient-sand" ? "#a37f1c" : "rgba(212, 175, 55, 0.65)";
     ctx.fillText("LOSUJWERSET.PL", center, size - 120);
     
-    // Convert canvas image to source of image tag
     if (previewImgRef.current) {
       previewImgRef.current.src = canvas.toDataURL("image/png");
     }
   }, [currentQuote, canvasTheme]);
 
-  // Trigger modal open and draw canvas
   const openShareModal = () => {
     setIsModalOpen(true);
     setTimeout(generateShareImage, 100);
@@ -417,14 +344,12 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
-  // Redraw when theme option is changed in modal
   useEffect(() => {
     if (isModalOpen) {
       generateShareImage();
     }
   }, [canvasTheme, isModalOpen, generateShareImage]);
 
-  // Auto redraw when Google Fonts are fully loaded in the browser
   useEffect(() => {
     if (typeof document !== "undefined" && (document as any).fonts) {
       (document as any).fonts.ready.then(() => {
@@ -435,10 +360,9 @@ export default function Home() {
     }
   }, [isModalOpen, generateShareImage]);
 
-  // Canvas download handler
   const downloadImage = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !currentQuote) return;
+    if (!canvas) return;
     
     const link = document.createElement("a");
     link.download = `Werset_${currentQuote.reference.replace(/\s+/g, "_").replace(/:/g, "-")}.png`;
@@ -460,7 +384,7 @@ export default function Home() {
     setShowCookiesBanner(false);
   };
 
-  // Background particle system effect
+  // Particles background system
   useEffect(() => {
     const canvas = particleCanvasRef.current;
     if (!canvas) return;
@@ -495,7 +419,7 @@ export default function Home() {
           y: Math.random() * canvas.height,
           radius: Math.random() * 2.5 + 0.5,
           vx: (Math.random() - 0.5) * 0.25,
-          vy: -Math.random() * 0.3 - 0.1, // slowly drift upwards
+          vy: -Math.random() * 0.3 - 0.1,
           alpha: Math.random() * 0.5 + 0.2,
           alphaSpeed: (Math.random() - 0.5) * 0.005
         });
@@ -505,11 +429,8 @@ export default function Home() {
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
     
-    // Draw / Animation loop
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Adapt color based on dark/light mode
       const particleColor = isLightMode ? "163, 127, 28" : "212, 175, 55";
       
       particles.forEach(p => {
@@ -517,7 +438,6 @@ export default function Home() {
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${particleColor}, ${p.alpha})`;
         
-        // Soft glowing shadows for particles in dark mode
         if (!isLightMode) {
           ctx.shadowBlur = 8;
           ctx.shadowColor = "rgba(212, 175, 55, 0.3)";
@@ -526,19 +446,16 @@ export default function Home() {
         }
         
         ctx.fill();
-        ctx.shadowBlur = 0; // reset
+        ctx.shadowBlur = 0;
         
-        // Physics update
         p.x += p.vx;
         p.y += p.vy;
         p.alpha += p.alphaSpeed;
         
-        // Smooth blinking
         if (p.alpha <= 0.1 || p.alpha >= 0.8) {
           p.alphaSpeed = -p.alphaSpeed;
         }
         
-        // Boundary check (respawn at bottom if goes off-screen)
         if (p.y < -10) {
           p.y = canvas.height + 10;
           p.x = Math.random() * canvas.width;
@@ -561,21 +478,16 @@ export default function Home() {
 
   return (
     <>
-      {/* Background Animated Canvas */}
       <canvas id="particle-canvas" ref={particleCanvasRef} />
       
-      {/* App Container */}
       <div className="app-container">
-        
-        {/* Header Section */}
         <header>
-          <div className="logo" onClick={() => drawRandomQuote(activeCategory, true)}>
+          <Link href="/" className="logo">
             <h1>Losuj<span>Werset</span></h1>
             <p>Wersety z Pisma Świętego</p>
-          </div>
+          </Link>
           
           <div className="controls">
-            {/* Audio Toggle button */}
             <button 
               className="control-btn" 
               onClick={toggleSound}
@@ -592,7 +504,6 @@ export default function Home() {
               )}
             </button>
             
-            {/* Theme Toggle button */}
             <button 
               className="control-btn" 
               onClick={toggleTheme}
@@ -611,95 +522,93 @@ export default function Home() {
           </div>
         </header>
         
-        {/* Main Content Area */}
         <main>
-          {currentQuote && (
-            <div className="quote-card">
-              {/* Category indicator */}
-              <div className="category-badge">
+          <div className="quote-card" style={{ transition: "all 0.5s" }}>
+            <div className="category-badge">
+              <Link href={`/temat/${currentQuote.category}`}>
                 {categoryTranslations[currentQuote.category] || currentQuote.category}
-              </div>
-              
-              {/* Animated Text Container with Decorative Quotes */}
-              <div className="quote-text-container">
-                <span className="quote-decor quote-decor-left">“</span>
-                <blockquote 
-                  className={`quote-text ${isTransitioning ? "fade-out" : ""}`}
-                >
-                  {currentQuote.text}
-                </blockquote>
-                <span className="quote-decor quote-decor-right">”</span>
-              </div>
-              
-              {/* Source/Reference details */}
-              <div className={`quote-reference ${isTransitioning ? "fade-out" : ""}`}>
-                <a href={currentQuote.sourceUrl} target="_blank" rel="noopener noreferrer">
-                  {currentQuote.reference}
-                </a>
-              </div>
-              
-              <div className={`quote-translation ${isTransitioning ? "fade-out" : ""}`}>
-                Nowa Biblia Gdańska (NBG)
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="action-buttons">
-                <button 
-                  className="btn-primary" 
-                  onClick={() => drawRandomQuote(activeCategory, true)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                  </svg>
-                  Otwórz Słowo Ponownie
-                </button>
-                
-                <button className="btn-secondary" onClick={copyToClipboard}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
-                  Kopiuj Tekst
-                </button>
-                
-                <button className="btn-secondary" onClick={openShareModal}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                  </svg>
-                  Stwórz Grafikę
-                </button>
-                
-                <button className="btn-secondary" onClick={copyLink}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                  </svg>
-                  Kopiuj Link
-                </button>
-              </div>
+              </Link>
             </div>
-          )}
-        </main>
-        
-        {/* Category filtering section with responsive wrapper */}
-        <section className="categories-bar-wrapper">
-          <div className="categories-bar">
-            {["wszystkie", "pokoj", "milosc", "nadzieja", "sila", "wiara", "wdziecznosc", "madrosc"].map((cat) => (
-              <button
-                key={cat}
-                className={`category-filter ${activeCategory === cat ? "active" : ""}`}
-                onClick={() => handleCategoryChange(cat)}
+            
+            <div className="quote-text-container">
+              <span className="quote-decor quote-decor-left">“</span>
+              <blockquote className={`quote-text ${isTransitioning ? "fade-out" : ""}`}>
+                {currentQuote.text}
+              </blockquote>
+              <span className="quote-decor quote-decor-right">”</span>
+            </div>
+            
+            <div className={`quote-reference ${isTransitioning ? "fade-out" : ""}`}>
+              <a href={currentQuote.sourceUrl} target="_blank" rel="noopener noreferrer">
+                {currentQuote.reference}
+              </a>
+            </div>
+            
+            <div className={`quote-translation ${isTransitioning ? "fade-out" : ""}`}>
+              Nowa Biblia Gdańska (NBG)
+            </div>
+            
+            <div className="action-buttons">
+              <button 
+                className="btn-primary" 
+                onClick={() => drawRandomQuote(true)}
               >
-                {categoryTranslations[cat]}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                Wylosuj inny z tej kategorii
               </button>
-            ))}
+              
+              <button className="btn-secondary" onClick={copyToClipboard}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Kopiuj Tekst
+              </button>
+              
+              <button className="btn-secondary" onClick={openShareModal}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                Stwórz Grafikę
+              </button>
+              
+              <button className="btn-secondary" onClick={copyLink}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                Kopiuj Link
+              </button>
+            </div>
           </div>
-        </section>
+        </main>
+
+        {/* Related Verses Section */}
+        {relatedQuotes.length > 0 && (
+          <section className="related-section">
+            <h3 className="related-title">
+              Inne wersety z kategorii: {categoryTranslations[initialQuote.category]}
+            </h3>
+            <div className="verses-grid">
+              {relatedQuotes.map((q) => (
+                <Link key={q.id} href={`/werset/${q.id}`} className="verse-item-card">
+                  <p className="verse-item-text" style={{ fontSize: "0.95rem" }}>„{q.text}”</p>
+                  <div className="verse-item-meta">
+                    <span className="verse-item-ref" style={{ fontSize: "0.75rem" }}>{q.reference}</span>
+                    <span className="verse-item-action" style={{ fontSize: "0.75rem" }}>Czytaj →</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Footer SEO Links */}
-        <section className="footer-seo-links">
+        <section className="footer-seo-links" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.06)", marginTop: "3rem" }}>
           <h4 className="seo-links-title">Szukaj wersetów według potrzeb i tematów</h4>
           <div className="seo-links-list">
             <Link href="/temat/pokoj" className="seo-link">Pokój i wyciszenie</Link>
@@ -711,8 +620,7 @@ export default function Home() {
             <Link href="/temat/madrosc" className="seo-link">Mądrość Boża</Link>
           </div>
         </section>
-        
-        {/* Footer Section */}
+
         <footer>
           <div>
             Wszystkie wersety z Pisma Świętego losowane są z równym prawdopodobieństwem.
@@ -727,13 +635,12 @@ export default function Home() {
           </div>
         </footer>
       </div>
-      
-      {/* Toast Notification Box */}
+
       <div className={`toast ${isToastVisible ? "show" : ""}`}>
         {toastText}
       </div>
 
-      {/* Share Image Generator Modal overlay */}
+      {/* Share Image Generator Modal */}
       <div className={`modal-overlay ${isModalOpen ? "open" : ""}`} onClick={closeShareModal}>
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <button className="modal-close" onClick={closeShareModal} title="Zamknij">
@@ -745,7 +652,6 @@ export default function Home() {
           
           <h3 className="modal-title">Stwórz Grafikę</h3>
           
-          {/* Theme Gradient selector */}
           <div className="theme-selector">
             {["gradient-gold", "gradient-dark", "gradient-sand", "gradient-dusk"].map((theme) => (
               <div 
@@ -757,10 +663,8 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Hidden HTML5 Canvas */}
           <canvas ref={canvasRef} id="share-canvas" />
 
-          {/* Live image preview */}
           <div className="canvas-preview-container">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img 
@@ -781,7 +685,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Cookies / Preferences Banner */}
       <div className={`cookies-banner ${showCookiesBanner ? "show" : ""}`}>
         <p className="cookies-text">
           Używamy informacji zapisanych w pamięci lokalnej (Local Storage) do zapamiętania Twojego motywu oraz ustawień dźwięku. Szczegóły znajdziesz w naszej{" "}
